@@ -8,15 +8,28 @@ import (
 )
 
 func main() {
-	var body = flag.String("body", "", "Put valid JSON")
+	var headerFlags []string
+	var body string
+
+	flag.String("body", "", "Put valid JSON")
+	flag.String("H", "", "")
 
 	flag.Parse()
+
+	flag.VisitAll(func(f *flag.Flag) {
+		switch f.Name {
+		case "H":
+			headerFlags = append(headerFlags, f.Value.String())
+		case "body":
+			body = f.Value.String()
+		}
+	})
 
 	var httpMethod = flag.Arg(0)
 	var url = flag.Arg(1)
 
 	var client = &http.Client{}
-	var requestBody = strings.NewReader(*body)
+	var requestBody = strings.NewReader(body)
 
 	var request, requestError = http.NewRequest(httpMethod, url, requestBody)
 
