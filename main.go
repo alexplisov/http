@@ -3,45 +3,79 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
 
-func main() {
-	var headerFlags []string
-	var body string
+type Request struct {
+	headers []string
+	body    string
+	method  string
+	url     string
+}
 
-	flag.String("body", "", "Put valid JSON")
-	flag.String("H", "", "")
+func ParseFlags() Request {
+	req := Request{
+		headers: []string{},
+		body:    "",
+		method:  "",
+		url:     "",
+	}
+
+	flag.String("body", "", "request body")
+	flag.String("H", "", "request header")
 
 	flag.Parse()
 
 	flag.VisitAll(func(f *flag.Flag) {
 		switch f.Name {
 		case "H":
-			headerFlags = append(headerFlags, f.Value.String())
+			req.headers = append(req.headers, f.Value.String())
 		case "body":
-			body = f.Value.String()
+			req.body = f.Value.String()
 		}
 	})
 
-	var httpMethod = flag.Arg(0)
-	var url = flag.Arg(1)
+	req.method = flag.Arg(0)
+	req.url = flag.Arg(1)
+	return req
+}
 
-	var client = &http.Client{}
-	var requestBody = strings.NewReader(body)
+func PerformRequest(req *Request) *http.Response {
+	client := &http.Client{}
+	requestBody := strings.NewReader(req.body)
 
-	var request, requestError = http.NewRequest(httpMethod, url, requestBody)
+	request, requestError := http.NewRequest(req.method, req.url, requestBody)
 
 	if requestError != nil {
 		fmt.Println("Error: ", requestError)
 	}
 
-	var response, responseError = client.Do(request)
+	response, responseError := client.Do(request)
 
 	if responseError != nil {
 		fmt.Println("Error: ", responseError)
 	}
 
-	fmt.Println(response.Status)
+	return response
 }
+
+func DisplayResults(res *http.Response) {
+	fmt.Println(res.Status)
+	fmt.Println()
+
+	responseBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
+
+	fmt.Println(string(responseBody))
+}
+
+func main() {
+	req := ParseFlags()
+	res := PerformRequest(&req)
+	DisplayResults(res)
+}
+
