@@ -66,9 +66,12 @@ func DisplayResults(res *http.Response) {
 	fmt.Println()
 
 	responseBody, err := io.ReadAll(res.Body)
+
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
+
+	defer res.Body.Close()
 
 	fmt.Println(string(responseBody))
 }
